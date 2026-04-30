@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(node -c src/index.ts)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
