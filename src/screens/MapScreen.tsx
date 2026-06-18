@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Callout, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import theme from "../theme";
 import LoadingScreen from "../components/LoadingScreen";
 import { useListings } from "../hooks/useListings";
@@ -32,19 +33,52 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     longitudeDelta: 3,
   };
 
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [locationPermission, setLocationPermission] = useState(false);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+
   useEffect(() => {
-    if (listings && listings.length > 0 && mapRef.current) {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          setLocationPermission(true);
+          const location = await Location.getCurrentPositionAsync({});
+          setUserLocation(location);
+        }
+      } catch (e) {
+        console.warn("Could not fetch current location", e);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (isMapReady && userLocation && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+        latitudeDelta: 0.5,
+        longitudeDelta: 0.5,
+      });
+    }
+  }, [isMapReady, userLocation]);
+
+  useEffect(() => {
+    if (isMapReady && listings && listings.length > 0 && mapRef.current && !userLocation) {
       const coordinates = listings.map((l) => ({
         latitude: l.location.lat,
         longitude: l.location.lng,
       }));
 
-      mapRef.current.fitToCoordinates(coordinates, {
-        edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
-        animated: true,
-      });
+      // Small timeout to ensure layout is complete
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates(coordinates, {
+          edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
+          animated: true,
+        });
+      }, 100);
     }
-  }, [listings]);
+  }, [listings, isMapReady]);
 
   if (isLoading && !listings) return <LoadingScreen />;
 
@@ -57,8 +91,9 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         provider={PROVIDER_DEFAULT}
         initialRegion={defaultRegion}
         style={styles.map}
-        showsUserLocation
-        showsMyLocationButton={false}
+        onMapReady={() => setIsMapReady(true)}
+        showsUserLocation={locationPermission}
+        showsMyLocationButton={locationPermission}
       >
         {listings?.map((listing) => (
           <Marker
@@ -198,7 +233,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   map: {
-    flex: 1,
+    width: "100%",
+    height: "100%",
   },
   callout: {
     width: 240,
