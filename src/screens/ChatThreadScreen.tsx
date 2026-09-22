@@ -16,6 +16,7 @@ import Avatar from "../components/Avatar";
 import ChatBubble from "../components/ChatBubble";
 import LoadingScreen from "../components/LoadingScreen";
 import { useMessages, useSendMessage } from "../hooks/useChat";
+import { useAuthStore } from "../stores/useAuthStore";
 
 interface ChatThreadScreenProps {
   navigation: any;
@@ -26,17 +27,14 @@ const ChatThreadScreen: React.FC<ChatThreadScreenProps> = ({ route }) => {
   const { conversationId, recipientName } = route.params;
   const [text, setText] = useState("");
   const flatListRef = useRef<FlatList>(null);
+  const user = useAuthStore((s) => s.user);
 
   const { data: messages, isLoading } = useMessages(conversationId);
   const sendMessageMutation = useSendMessage();
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (messages?.length) {
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100,
-      );
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages]);
 
@@ -50,7 +48,6 @@ const ChatThreadScreen: React.FC<ChatThreadScreenProps> = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
       <View style={styles.header}>
         <Avatar name={recipientName || "User"} size={36} />
         <View style={styles.headerInfo}>
@@ -64,24 +61,18 @@ const ChatThreadScreen: React.FC<ChatThreadScreenProps> = ({ route }) => {
         style={styles.keyboardView}
         keyboardVerticalOffset={90}
       >
-        {/* Messages List */}
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ChatBubble
-              message={item}
-              isOwn={item.senderId === "current_user"}
-            />
+            <ChatBubble message={item} isOwn={item.senderId === user?.id} />
           )}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
-          inverted={false} // Set to true if you want newest at bottom natively, but keeping false for simple mock setup
         />
       </KeyboardAvoidingView>
 
-      {/* Input Bar */}
       <View style={styles.inputBar}>
         <View style={styles.inputWrapper}>
           <TextInput
@@ -98,16 +89,9 @@ const ChatThreadScreen: React.FC<ChatThreadScreenProps> = ({ route }) => {
           activeOpacity={0.8}
           onPress={handleSend}
           disabled={!text.trim()}
-          style={[
-            styles.sendButton,
-            text.trim() ? styles.sendButtonActive : styles.sendButtonInactive,
-          ]}
+          style={[styles.sendButton, text.trim() ? styles.sendActive : styles.sendInactive]}
         >
-          <Ionicons
-            name="send"
-            size={20}
-            color={text.trim() ? "#fff" : theme.colors.gray400}
-          />
+          <Ionicons name="send" size={20} color={text.trim() ? "#fff" : theme.colors.gray400} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -167,6 +151,8 @@ const styles = StyleSheet.create({
   },
   sendButtonActive: { backgroundColor: theme.colors.primary },
   sendButtonInactive: { backgroundColor: theme.colors.gray100 },
+  sendActive: { backgroundColor: theme.colors.primary },
+  sendInactive: { backgroundColor: theme.colors.gray100 },
 });
 
 export default ChatThreadScreen;

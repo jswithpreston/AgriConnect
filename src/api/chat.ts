@@ -1,25 +1,54 @@
 import { ChatConversation, ChatMessage } from "../types";
-import { apiClient } from "./client";
+import {
+  MOCK_CONVERSATIONS,
+  MOCK_MESSAGES,
+} from "../constants/mockData";
+
+const delay = (ms = 300) => new Promise((res) => setTimeout(res, ms));
 
 export const chatApi = {
   getConversations: async (): Promise<ChatConversation[]> => {
-    const { data } = await apiClient.get('/chat/conversations');
-    return data;
+    await delay();
+    return [...MOCK_CONVERSATIONS].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
   },
 
   getMessages: async (conversationId: string): Promise<ChatMessage[]> => {
-    const { data } = await apiClient.get(`/chat/conversations/${conversationId}/messages`);
-    return data;
+    await delay();
+    return MOCK_MESSAGES[conversationId] || [];
   },
 
   sendMessage: async (
     conversationId: string,
     text: string,
   ): Promise<ChatMessage> => {
-    const { data } = await apiClient.post('/chat/messages', {
+    await delay(200);
+    const newMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
       conversationId,
+      senderId: "demo-farmer-001",
       text,
-    });
-    return data;
+      timestamp: new Date().toISOString(),
+      status: "sent",
+    };
+    if (!MOCK_MESSAGES[conversationId]) {
+      MOCK_MESSAGES[conversationId] = [];
+    }
+    MOCK_MESSAGES[conversationId].push(newMsg);
+
+    // Update conversation last message
+    const conv = MOCK_CONVERSATIONS.find((c) => c.id === conversationId);
+    if (conv) {
+      conv.lastMessage = {
+        text,
+        timestamp: newMsg.timestamp,
+        senderId: newMsg.senderId,
+      };
+      conv.updatedAt = newMsg.timestamp;
+    }
+
+    return newMsg;
   },
 };

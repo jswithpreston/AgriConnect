@@ -45,7 +45,7 @@ const ListingDetailScreen: React.FC<ListingDetailScreenProps> = ({
     // In a real app, this checks if a chat exists, if not creates one, then navigates.
     // For mock, we navigate straight to a mock chat thread.
     navigation.navigate("ChatThread", {
-      conversationId: "c1",
+      conversationId: "conv-001",
       recipientName: listing.farmer.name,
     });
   };
@@ -92,11 +92,7 @@ const ListingDetailScreen: React.FC<ListingDetailScreenProps> = ({
 
           {/* Badges */}
           <View style={styles.badgeRow}>
-            <Badge
-              label={`Grade ${listing.quality}`}
-              variant="quality"
-              size="md"
-            />
+            <Badge label={listing.quality} variant="quality" size="md" />
             <Badge
               label={listing.isAvailable ? "Available" : "Sold Out"}
               variant={listing.isAvailable ? "success" : "neutral"}
@@ -217,7 +213,7 @@ const ListingDetailScreen: React.FC<ListingDetailScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   imageContainer: { height: 280, width: "100%", position: "relative" },
   image: { width: "100%", height: "100%" },
   imagePlaceholder: {

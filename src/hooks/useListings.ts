@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { listingsApi } from "../api/listings";
 import { useFilterStore } from "../stores/useFilterStore";
+import { useAuthStore } from "../stores/useAuthStore";
 
 export const useListings = () => {
   const filters = useFilterStore();
@@ -20,11 +21,14 @@ export const useListingDetail = (id: string) => {
   });
 };
 
-export const useFarmerListings = (farmerId: string) => {
+export const useFarmerListings = (farmerId?: string) => {
+  const user = useAuthStore((s) => s.user);
+  const id = farmerId || user?.id || "";
+
   return useQuery({
-    queryKey: ["farmerListings", farmerId],
-    queryFn: () => listingsApi.getByFarmer(farmerId),
-    enabled: !!farmerId,
+    queryKey: ["farmerListings", id],
+    queryFn: () => listingsApi.getByFarmer(id),
+    enabled: !!id,
   });
 };
 

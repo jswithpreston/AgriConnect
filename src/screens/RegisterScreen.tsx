@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import theme from "../theme";
 import Button from "../components/Button";
@@ -20,56 +20,29 @@ interface RegisterScreenProps {
 }
 
 const UGANDA_DISTRICTS = [
-  "Kampala",
-  "Wakiso",
-  "Mukono",
-  "Jinja",
-  "Masaka",
-  "Mbarara",
-  "Gulu",
-  "Lira",
-  "Fort Portal",
-  "Kabale",
-  "Soroti",
-  "Arua",
-  "Mbale",
-  "Entebbe",
-  "Kasese",
-  "Hoima",
-  "Rukungiri",
-  "Iganga",
-  "Bushenyi",
-  "Kotido",
+  "Kampala", "Wakiso", "Mukono", "Jinja", "Masaka", "Mbarara",
+  "Gulu", "Lira", "Fort Portal", "Kabale", "Soroti", "Arua",
+  "Mbale", "Entebbe", "Kasese", "Hoima", "Rukungiri", "Iganga",
 ];
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"farmer" | "buyer">("farmer");
   const [district, setDistrict] = useState("");
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
-  const [otp, setOtp] = useState("");
   const registerMutation = useRegister();
 
-  const handleSendOtp = () => {
-    if (name.length >= 2 && phone.length === 9 && district) {
-      setShowOtp(true);
-    }
-  };
+  const isValid = name.length >= 2 && phone.length >= 9 && password.length >= 4 && !!district;
 
   const handleRegister = () => {
-    if (otp.length === 6) {
-      registerMutation.mutate(
-        { name, phone, role, district },
-        {
-          onSuccess: () => {
-            // Success! Navigate straight to the Main App tabs
-            navigation.replace("Main");
-          },
-        },
-      );
-    }
+    if (!isValid) return;
+    registerMutation.mutate(
+      { name, phone, password, role, district },
+      { onSuccess: () => navigation.replace("Main") },
+    );
   };
 
   return (
@@ -81,167 +54,109 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Demo Mode Banner */}
-          <View style={styles.demoBanner}>
-            <Ionicons
-              name="information-circle-outline"
-              size={14}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.demoText}>
-              Demo Mode: Use OTP <Text style={styles.demoCode}>123456</Text>
-            </Text>
-          </View>
-
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={theme.colors.gray800}
-            />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.gray800} />
           </TouchableOpacity>
 
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join AgriConnect Uganda</Text>
 
           {/* Role Selector */}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: theme.spacing.md,
-              marginBottom: theme.spacing.xxl,
-            }}
-          >
+          <View style={styles.roleRow}>
             {(["farmer", "buyer"] as const).map((r) => (
-              <View key={r} style={{ flex: 1 }}>
-                <Button
-                  title={r === "farmer" ? "  Farmer" : "  Buyer"}
-                  onPress={() => setRole(r)}
-                  variant={role === r ? "primary" : "outline"}
-                  size="md"
-                  icon={
-                    r === "farmer" ? (
-                      <MaterialCommunityIcons
-                        name="tractor"
-                        size={18}
-                        color={
-                          role === "farmer" ? "#fff" : theme.colors.primary
-                        }
-                      />
-                    ) : (
-                      <Ionicons
-                        name="cart-outline"
-                        size={18}
-                        color={role === "buyer" ? "#fff" : theme.colors.primary}
-                      />
-                    )
-                  }
+              <TouchableOpacity
+                key={r}
+                activeOpacity={0.7}
+                style={[styles.roleCard, role === r && styles.roleCardActive]}
+                onPress={() => setRole(r)}
+              >
+                <MaterialCommunityIcons
+                  name={r === "farmer" ? "tractor" : "cart-outline"}
+                  size={28}
+                  color={role === r ? theme.colors.primary : theme.colors.gray400}
                 />
-              </View>
+                <Text style={[styles.roleLabel, role === r && styles.roleLabelActive]}>
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </Text>
+              </TouchableOpacity>
             ))}
           </View>
 
-          <Input
-            label="Full Name"
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter your full name"
-          />
-
+          <Input label="Full Name" value={name} onChangeText={setName} placeholder="Enter your full name" />
           <Input
             label="Phone Number"
             value={phone}
             onChangeText={setPhone}
             placeholder="e.g. 772 123456"
             keyboardType="phone-pad"
-            maxLength={9}
+            maxLength={10}
             leftIcon={<Text style={styles.phonePrefix}>+256</Text>}
+          />
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Create a password"
+            secureTextEntry={!showPassword}
+            rightIcon={
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={24}
+                  color={theme.colors.gray500}
+                />
+              </TouchableOpacity>
+            }
           />
 
           {/* District Picker */}
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerLabel}>District</Text>
-            <View style={styles.pickerRow}>
-              {UGANDA_DISTRICTS.slice(0, 5).map((d) => (
-                <View key={d} style={styles.chipWrapper}>
-                  <Button
-                    title={d}
-                    onPress={() => setDistrict(d)}
-                    variant={district === d ? "primary" : "outline"}
-                    size="sm"
-                  />
-                </View>
+            <View style={styles.districtGrid}>
+              {(showDistrictPicker ? UGANDA_DISTRICTS : UGANDA_DISTRICTS.slice(0, 6)).map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  activeOpacity={0.7}
+                  style={[styles.districtChip, district === d && styles.districtChipActive]}
+                  onPress={() => setDistrict(d)}
+                >
+                  <Text style={[styles.districtChipText, district === d && styles.districtChipTextActive]}>
+                    {d}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
-            {showDistrictPicker ? (
-              <View style={styles.districtGrid}>
-                {UGANDA_DISTRICTS.map((d) => (
-                  <View key={d} style={styles.chipWrapper}>
-                    <Button
-                      title={d}
-                      onPress={() => {
-                        setDistrict(d);
-                        setShowDistrictPicker(false);
-                      }}
-                      variant={district === d ? "primary" : "ghost"}
-                      size="sm"
-                    />
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text
-                style={styles.showMore}
-                onPress={() => setShowDistrictPicker(true)}
-              >
-                Show more districts...
-              </Text>
+            {!showDistrictPicker && (
+              <TouchableOpacity onPress={() => setShowDistrictPicker(true)}>
+                <Text style={styles.showMore}>Show all districts...</Text>
+              </TouchableOpacity>
             )}
           </View>
 
-          {!showOtp ? (
-            <Button
-              title="Send OTP"
-              onPress={handleSendOtp}
-              disabled={name.length < 2 || phone.length < 9 || !district}
-              fullWidth
-            />
-          ) : (
-            <>
-              <Input
-                label="Enter OTP"
-                value={otp}
-                onChangeText={setOtp}
-                placeholder="Enter 123456"
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-              <Button
-                title="Verify & Create Account"
-                onPress={handleRegister}
-                disabled={otp.length < 6}
-                loading={registerMutation.isPending}
-                fullWidth
-              />
-            </>
-          )}
+          <Button
+            title="Create Account"
+            onPress={handleRegister}
+            disabled={!isValid || registerMutation.isPending}
+            loading={registerMutation.isPending}
+            fullWidth
+          />
 
-          <View style={styles.loginLink}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate("Login")}
+            style={styles.loginLink}
+          >
             <Text style={styles.loginText}>
               Already have an account?{" "}
-              <Text
-                style={styles.loginHighlight}
-                onPress={() => navigation.navigate("Login")}
-              >
-                Login
-              </Text>
+              <Text style={styles.loginHighlight}>Login</Text>
             </Text>
-          </View>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -255,56 +170,38 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.lg,
     paddingBottom: theme.spacing.xxxl,
   },
-  demoBanner: {
-    flexDirection: "row",
+  backButton: { marginBottom: theme.spacing.lg, alignSelf: "flex-start", padding: theme.spacing.sm },
+  title: { ...theme.typography.headingLarge, color: theme.colors.gray900, marginBottom: theme.spacing.sm },
+  subtitle: { ...theme.typography.bodyLarge, color: theme.colors.gray500, marginBottom: theme.spacing.xxl },
+  roleRow: { flexDirection: "row", gap: theme.spacing.lg, marginBottom: theme.spacing.xxl },
+  roleCard: {
+    flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primary50,
+    paddingVertical: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  roleCardActive: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary50 },
+  roleLabel: { ...theme.typography.labelLarge, color: theme.colors.gray500, marginTop: theme.spacing.sm },
+  roleLabelActive: { color: theme.colors.primary, fontWeight: "700" },
+  phonePrefix: { ...theme.typography.bodyLarge, color: theme.colors.gray500, fontWeight: "600" },
+  pickerContainer: { marginBottom: theme.spacing.xl },
+  pickerLabel: { ...theme.typography.labelMedium, color: theme.colors.gray700, marginBottom: theme.spacing.sm },
+  districtGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm },
+  districtChip: {
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    gap: 6,
-    marginBottom: theme.spacing.md,
+    borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
-  demoText: { ...theme.typography.bodySmall, color: theme.colors.primaryDark },
-  demoCode: { fontWeight: "800", letterSpacing: 1 },
-  backButton: {
-    marginBottom: theme.spacing.lg,
-    alignSelf: "flex-start",
-    padding: theme.spacing.sm,
-  },
-  title: {
-    ...theme.typography.headingLarge,
-    color: theme.colors.gray900,
-    marginBottom: theme.spacing.sm,
-  },
-  subtitle: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.gray500,
-    marginBottom: theme.spacing.xxl,
-  },
-  phonePrefix: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.gray500,
-    fontWeight: "600",
-  },
-  pickerContainer: { marginBottom: theme.spacing.lg },
-  pickerLabel: {
-    ...theme.typography.labelMedium,
-    color: theme.colors.gray700,
-    marginBottom: theme.spacing.sm,
-  },
-  pickerRow: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm },
-  chipWrapper: { marginBottom: theme.spacing.xs },
-  districtGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
-  },
-  showMore: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.primary,
-    marginTop: theme.spacing.sm,
-  },
+  districtChipActive: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary50 },
+  districtChipText: { ...theme.typography.labelSmall, color: theme.colors.gray600 },
+  districtChipTextActive: { color: theme.colors.primary, fontWeight: "700" },
+  showMore: { ...theme.typography.bodySmall, color: theme.colors.primary, marginTop: theme.spacing.sm },
   loginLink: { alignItems: "center", marginTop: theme.spacing.xl },
   loginText: { ...theme.typography.bodyMedium, color: theme.colors.gray500 },
   loginHighlight: { color: theme.colors.primary, fontWeight: "700" },

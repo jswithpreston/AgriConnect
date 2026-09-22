@@ -4,194 +4,193 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import theme from "../theme";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import { useLogin } from "../hooks/useAuth";
+import { DEMO_ACCOUNTS } from "../constants/demoCredentials";
 
 interface LoginScreenProps {
   navigation: any;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"farmer" | "buyer">("farmer");
-  const [showOtp, setShowOtp] = useState(false);
-  const [otp, setOtp] = useState("");
-
   const loginMutation = useLogin();
 
-  const handleSendOtp = () => {
-    if (phone.length === 9) {
-      setShowOtp(true);
+  const handleLogin = () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Missing Fields", "Please enter your email and password.");
+      return;
     }
+    loginMutation.mutate(
+      { phone: email.trim(), password, role },
+      {
+        onSuccess: () => navigation.replace("Main"),
+        onError: () =>
+          Alert.alert("Login Failed", "Invalid credentials. Try a demo account below."),
+      },
+    );
   };
 
-  const handleLogin = () => {
-    if (otp.length === 6) {
-      loginMutation.mutate(
-        { phone, role },
-        {
-          onSuccess: () => {
-            navigation.replace("Main");
-          },
-          onError: (error) => {
-            Alert.alert(
-              "Login Failed",
-              "Something went wrong. Check your console.",
-            );
-            console.error("Login error:", error);
-          },
-        },
-      );
-    }
+  const handleDemoLogin = (index: number) => {
+    const account = DEMO_ACCOUNTS[index];
+    setEmail(account.email);
+    setPassword(account.password);
+    setRole(account.role);
+    loginMutation.mutate(
+      { phone: account.email, password: account.password, role: account.role },
+      { onSuccess: () => navigation.replace("Main") },
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "android" ? "height" : "padding"}
-        style={styles.keyboardView}
+        style={{ flex: 1 }}
       >
-        <View style={styles.demoBanner}>
-          <Ionicons
-            name="information-circle-outline"
-            size={14}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.demoText}>
-            Demo Mode: Use OTP <Text style={styles.demoCode}>123456</Text>
-          </Text>
-        </View>
-
-        <View style={styles.header}>
-          <MaterialCommunityIcons
-            name="sprout"
-            size={48}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.appName}>AgriConnect</Text>
-          <Text style={styles.appSubtext}>Uganda's Farm to Market</Text>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Login to your account</Text>
-
-          <View style={styles.roleContainer}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.roleCard,
-                role === "farmer" && styles.roleCardActive,
-              ]}
-              onPress={() => setRole("farmer")}
-            >
-              <MaterialCommunityIcons
-                name="tractor"
-                size={32}
-                color={
-                  role === "farmer"
-                    ? theme.colors.primary
-                    : theme.colors.gray400
-                }
-              />
-              <Text
-                style={[
-                  styles.roleLabel,
-                  role === "farmer" && styles.roleLabelActive,
-                ]}
-              >
-                Farmer
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.roleCard,
-                role === "buyer" && styles.roleCardActive,
-              ]}
-              onPress={() => setRole("buyer")}
-            >
-              <Ionicons
-                name="cart-outline"
-                size={32}
-                color={
-                  role === "buyer" ? theme.colors.primary : theme.colors.gray400
-                }
-              />
-              <Text
-                style={[
-                  styles.roleLabel,
-                  role === "buyer" && styles.roleLabelActive,
-                ]}
-              >
-                Buyer
-              </Text>
-            </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <MaterialCommunityIcons
+              name="sprout"
+              size={56}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.appName}>AgriConnect</Text>
+            <Text style={styles.appSubtext}>Uganda's Farm to Market</Text>
           </View>
 
-          {!showOtp ? (
-            <>
-              <Input
-                label="Phone Number"
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="e.g. 772 123456"
-                keyboardType="phone-pad"
-                maxLength={9}
-                leftIcon={<Text style={styles.phonePrefix}>+256</Text>}
-              />
-              <Button
-                title="Send OTP"
-                onPress={handleSendOtp}
-                disabled={phone.length < 9}
-                fullWidth
-              />
-            </>
-          ) : (
-            <>
-              <Input
-                label="Enter OTP"
-                value={otp}
-                onChangeText={setOtp}
-                placeholder="Enter 123456"
-                keyboardType="number-pad"
-                maxLength={6}
-                hint={`Sent to +256 ${phone}`}
-              />
+          {/* Demo Banner */}
+          <View style={styles.demoBanner}>
+            <Ionicons
+              name="flash"
+              size={16}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.demoTitle}>Demo Mode Active</Text>
+          </View>
 
-              {/* CHANGED: Using loginMutation.isPending here instead of Zustand */}
-              <Button
-                title="Verify & Login"
-                onPress={handleLogin}
-                disabled={otp.length < 6 || loginMutation.isPending}
-                loading={loginMutation.isPending}
-                fullWidth
-              />
+          {/* Demo Quick Login Buttons */}
+          <View style={styles.demoSection}>
+            <Text style={styles.demoSectionLabel}>Quick Demo Login</Text>
+            <View style={styles.demoButtons}>
+              {DEMO_ACCOUNTS.map((account, i) => (
+                <TouchableOpacity
+                  key={account.email}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.demoCard,
+                    account.role === "farmer"
+                      ? styles.demoCardFarmer
+                      : styles.demoCardBuyer,
+                  ]}
+                  onPress={() => handleDemoLogin(i)}
+                  disabled={loginMutation.isPending}
+                >
+                  <MaterialCommunityIcons
+                    name={account.role === "farmer" ? "tractor" : "cart-outline"}
+                    size={28}
+                    color={
+                      account.role === "farmer"
+                        ? theme.colors.primary
+                        : theme.colors.secondary
+                    }
+                  />
+                  <Text style={styles.demoCardLabel}>{account.label}</Text>
+                  <Text style={styles.demoCardEmail}>{account.email}</Text>
+                  <Text style={styles.demoCardPass}>pw: {account.password}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setShowOtp(false)}
-                style={styles.changePhone}
-              >
-                <Text style={styles.changePhoneText}>Change phone number</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
+          {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>or login manually</Text>
             <View style={styles.dividerLine} />
           </View>
 
+          {/* Role Selector */}
+          <View style={styles.roleContainer}>
+            {(["farmer", "buyer"] as const).map((r) => (
+              <TouchableOpacity
+                key={r}
+                activeOpacity={0.7}
+                style={[styles.roleCard, role === r && styles.roleCardActive]}
+                onPress={() => setRole(r)}
+              >
+                <MaterialCommunityIcons
+                  name={r === "farmer" ? "tractor" : "cart-outline"}
+                  size={28}
+                  color={
+                    role === r ? theme.colors.primary : theme.colors.gray400
+                  }
+                />
+                <Text
+                  style={[
+                    styles.roleLabel,
+                    role === r && styles.roleLabelActive,
+                  ]}
+                >
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Form */}
+          <View style={styles.form}>
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="farmer@demo.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <Input
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="demo123"
+              secureTextEntry={!showPassword}
+              rightIcon={
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={24}
+                    color={theme.colors.gray500}
+                  />
+                </TouchableOpacity>
+              }
+            />
+            <Button
+              title="Login"
+              onPress={handleLogin}
+              disabled={loginMutation.isPending}
+              loading={loginMutation.isPending}
+              fullWidth
+            />
+          </View>
+
+          {/* Register Link */}
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.navigate("Register")}
@@ -202,7 +201,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <Text style={styles.registerHighlight}>Create Account</Text>
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -210,21 +209,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  keyboardView: { flex: 1 },
-  demoBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primary50,
-    paddingVertical: theme.spacing.sm,
-    gap: 6,
-  },
-  demoText: { ...theme.typography.bodySmall, color: theme.colors.primaryDark },
-  demoCode: { fontWeight: "800", letterSpacing: 1 },
+  scroll: { paddingHorizontal: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
   header: {
     alignItems: "center",
     paddingTop: theme.spacing.xxl,
-    paddingBottom: theme.spacing.xxl,
+    paddingBottom: theme.spacing.xl,
   },
   appName: {
     ...theme.typography.headingLarge,
@@ -237,21 +226,76 @@ const styles = StyleSheet.create({
     color: theme.colors.gray500,
     marginTop: theme.spacing.xs,
   },
-  content: { flex: 1, paddingHorizontal: theme.spacing.xl },
-  title: {
-    ...theme.typography.headingLarge,
-    color: theme.colors.gray900,
-    marginBottom: theme.spacing.sm,
+  demoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary50,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    gap: 6,
+    marginBottom: theme.spacing.lg,
   },
-  subtitle: {
-    ...theme.typography.bodyLarge,
+  demoTitle: {
+    ...theme.typography.labelMedium,
+    color: theme.colors.primaryDark,
+    fontWeight: "700",
+  },
+  demoSection: { marginBottom: theme.spacing.xl },
+  demoSectionLabel: {
+    ...theme.typography.labelMedium,
+    color: theme.colors.gray600,
+    marginBottom: theme.spacing.md,
+    textAlign: "center",
+  },
+  demoButtons: { flexDirection: "row", gap: theme.spacing.md },
+  demoCard: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 2,
+    gap: theme.spacing.xs,
+  },
+  demoCardFarmer: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary50,
+  },
+  demoCardBuyer: {
+    borderColor: theme.colors.secondary,
+    backgroundColor: theme.colors.secondary50,
+  },
+  demoCardLabel: {
+    ...theme.typography.labelMedium,
+    color: theme.colors.gray800,
+    fontWeight: "700",
+  },
+  demoCardEmail: {
+    ...theme.typography.labelSmall,
     color: theme.colors.gray500,
-    marginBottom: theme.spacing.xxl,
+    fontSize: 10,
+  },
+  demoCardPass: {
+    ...theme.typography.labelSmall,
+    color: theme.colors.gray400,
+    fontSize: 10,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: theme.colors.border },
+  dividerText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.gray400,
+    marginHorizontal: theme.spacing.md,
   },
   roleContainer: {
     flexDirection: "row",
     gap: theme.spacing.lg,
-    marginBottom: theme.spacing.xxl,
+    marginBottom: theme.spacing.xl,
   },
   roleCard: {
     flex: 1,
@@ -272,32 +316,8 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   roleLabelActive: { color: theme.colors.primary, fontWeight: "700" },
-  phonePrefix: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.gray500,
-    fontWeight: "600",
-  },
-  changePhone: { alignItems: "center", marginTop: theme.spacing.md },
-  changePhoneText: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.primary,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: theme.spacing.xl,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: theme.colors.border },
-  dividerText: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.gray400,
-    marginHorizontal: theme.spacing.lg,
-  },
-  registerLink: {
-    alignItems: "center",
-    marginTop: theme.spacing.xl,
-    marginBottom: theme.spacing.xxl,
-  },
+  form: { gap: theme.spacing.sm, marginBottom: theme.spacing.xl },
+  registerLink: { alignItems: "center", paddingVertical: theme.spacing.md },
   registerText: { ...theme.typography.bodyMedium, color: theme.colors.gray500 },
   registerHighlight: { color: theme.colors.primary, fontWeight: "700" },
 });

@@ -34,7 +34,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         style: "destructive",
         onPress: () => {
           logout();
-          // Navigation will automatically push back to Auth because of AppNavigator logic
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Auth" }],
+          });
         },
       },
     ]);
